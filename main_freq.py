@@ -8,12 +8,25 @@ import inspect, os
 import data
 import learner_freq 
 
+import logging
+import logging.config
+
+
+
 #------------------------------------------------------------
 def main(argv):
+	
+	logging.config.fileConfig('logging.conf')
+
+	# create logger
+	#logger = logging.getLogger('simpleExample')
+	logger = logging.getLogger('main_freq')
+
 	#get arguments from command line
 	#parse arguments
 	inputfile = ''
 	outputfile = ''
+	
 	try:
 		opts, args = getopt.getopt(argv,"hi:o:",["help","infile=","outfile="])
 
@@ -22,6 +35,17 @@ def main(argv):
 		usage()
 		sys.exit(2)
 	
+	#print "opt =", opts
+	message =''
+	for i in range(0, len(opts)):
+		#message = '%s:%s' % (i, opts[i].items())
+		message = '%s:%s' % (i, opts[i])
+		logger.debug("opts = %s", message )
+
+	if opts  == []: # should be at least -i <input_file.csv>
+		usage()
+		sys.exit(2)
+
 	for opt, arg in opts:
 		if opt in ( "-h","--help"):
 			usage()
@@ -32,7 +56,7 @@ def main(argv):
 			outputfile = arg
 			#print 'Input file is "', inputfile
 			#print 'Output file is "', outputfile
-	
+
 	load_data = data.Data()
 	#read data from csv file
 	rds = load_data.read_raw_data(inputfile)
