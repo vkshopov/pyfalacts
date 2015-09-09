@@ -1,9 +1,9 @@
 TODO
 
-fix the bug of usage/args processing
+[fixed] fix the bug of usage/args processing
 
-add coefficients of lerning and amnesia to FreqLearner
+[fixed] ]add coefficients of learning and amnesia to FreqLearner
 
-add tree adaptive learning algorithm for classifiation of timr series TreeLearner
-add fast adaptive learning algorithm for classifiation of timr series FastLearner
+add tree adaptive learning algorithm for classifiation of time series (TreeLearner)
+add fast adaptive learning algorithm for classifiation of time series (FastLearner)
 

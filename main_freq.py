@@ -35,6 +35,8 @@ def main(argv):
 		usage()
 		sys.exit(2)
 	
+	#loging start
+	logger.info("main_freq starts" )
 	#print "opt =", opts
 	message =''
 	for i in range(0, len(opts)):
@@ -87,6 +89,10 @@ def main(argv):
 
 	for i in range(len(odl)):
 		print odl[i], odr[i], frs[i]
+	
+	#logging end
+	logger.info("man_freq finished! ")
+
 
 def usage():
 	script_name =  inspect.getfile(inspect.currentframe()) 
