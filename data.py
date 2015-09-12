@@ -1,120 +1,214 @@
+"""
+This module convert raw data from csv file
+to sets with left side e.g [1,2,3] and right side as 4
+"""
+
 import csv
-import numpy as np
 
-#read data and build data sets---------------------------------------
+# read data and build data sets---------------------------------------
+
+
 class Data(object):
-	def read_raw_data(self,file):
-		# input csv file with facts
-		# output list with integers
-		
-		rds=[] #raw data set
-		
-		with open(file, 'rb') as csvfile:
-			reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-			for row in reader:
-				rds.append(int(row[0]))
-		
-		return rds
 
-	def get_set_of_facts(self,data):
-		# get unique facts
-		# data 	- data set with integer facts
-		# sof	- set of unique facts
-		
-		tmp_list = data[:]
-		sof = set(tmp_list)
+    """
+    This class convert raw data from csv file
+    to sets with left side e.g [1,2,3] and right side as 4
+    """
 
-		return sof
+    @staticmethod
+    def read_raw_data(input_file):
 
-	def build_disc_data(self,rds,sow):
-		sod = len(rds) - (sow - 1)
-		#print sod
-		
-		ods = []
-		for i in range(sod):
-			tmp = []
-			for j in range(sow):
-				tmp.append(rds[i+j])
-			ods.append(tmp)
+        """
+        Read data from input_file
+        and returns raw_data_set
+        """
 
-		return ods
+        # input csv file with facts
+        # output list with integers
 
-	def build_observed_data_set(self,ods):
-		#observed left 
-		#observed right
-		
-		#odr = ods[1:,-1]
-		#odl = ods[:-1,:]
+        raw_data_set = []    # raw data set
+        with open(input_file, 'rb') as csvfile:
+            reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+            for row in reader:
+                raw_data_set.append(int(row[0]))
 
-		nrows = len(ods)
-		ncols = len(ods[0])
-		
-		odr = []
-		for i in range(1,nrows):
-			odr.append(ods[i][-1])
-		
-		odl = []
-		for i in range(0,nrows-1):
-			tmp = ods[i]
-			odl.append(tmp)
+        return raw_data_set
 
-		return (odl,odr)
+    @staticmethod
+    def get_set_of_facts(raw_data_set):
+
+        """
+        Get raw data set
+        returns python set_of_facts with unique data smaples
+        """
+
+        # sof   - set of unique facts
+        tmp_list = raw_data_set[:]
+        sof = set(tmp_list)
+
+        return sof
+
+    @staticmethod
+    def build_disc_data(raw_data_set, size_of_window):
+
+        """
+        Builds discrete data
+        gets raw data set [1,2,3,4,5,6,7,8,9...100]  and size of window e.g. 3
+        returns data set as [[1,2,3]
+                             [4,5,6]
+                             ...
+                             [98,99,100]]
+        """
+
+        sod = len(raw_data_set) - (size_of_window - 1)
+        # print sod
+        data_set = []
+        for i in range(sod):
+            tmp = []
+            for j in range(size_of_window):
+                tmp.append(raw_data_set[i+j])
+            data_set.append(tmp)
+
+        return data_set
+
+    @staticmethod
+    def build_observed_data_set(data_set):
+
+        """
+        From data set of subsequences
+        construct two data sets one witk left side with length sow-1
+        and one with the last sample of subseq that represents the right side
+        """
+
+        # if numpy used the we could do the following:
+        # right_side_data_set = data_set[1:,-1]
+        # left_side_data_set = data_set[:-1,:]
+        # however with plain pthon list we use the following:
+
+        nrows = len(data_set)  # number of rows
+        # ncols = len(data_set[0]) we dont need it
+        right_side_data_set = []
+        for i in range(1, nrows):
+            right_side_data_set.append(data_set[i][-1])
+        left_side_data_set = []
+        for i in range(0, nrows-1):
+            tmp = data_set[i]
+            left_side_data_set.append(tmp)
+
+        return (left_side_data_set, right_side_data_set)
 
 import unittest
 
-class TestData(unittest.TestCase):
 
-	def setUp(self):
-		self.testfile = "./data/data_test2.csv"
-		self.paragon = [1,2,3,4,5,6]
-		self.sow = 3
-		self.d = Data
+class TestData(unittest.TestCase):  # pylint: disable=R0904
 
-	        #pass
+    """
+    This is testing class for Data class
+    """
 
-	def test_read_raw_data(self):
-		result_must_be = self.paragon
-		d = Data()
-		self.assertEqual(result_must_be, d.read_raw_data(self.testfile))
+    def setUp(self):
 
-	def test_get_set_of_facts(self):
-		d = Data()
-		result_must_be = set(self.paragon)
-		self.assertEqual(result_must_be,d.get_set_of_facts( d.read_raw_data(self.testfile)))
+        """
+        prepare some generic members
+        """
 
-	def test_build_disc_data(self):
-		result_must_be = [	[1,2,3],
-					[2,3,4],
-					[3,4,5],
-					[4,5,6]]
-		raw_data_set = [1,2,3,4,5,6]
-		d = Data()
-		self.assertItemsEqual(result_must_be,d.build_disc_data(raw_data_set,3))
+        self.testfile = "./data/data_test2.csv"
+        self.paragon = [1, 2, 3, 4, 5, 6]
+        self.sow = 3
+        self.my_data = Data
 
-	def test_build_observed_data_set_left(self):
-		ods = [	[1,2,3],
-        		[2,3,4],
-        		[3,4,5],
-        		[4,5,6]]
-		must_be_odl = [	[1,2,3],
-				[2,3,4],
-				[3,4,5]]
-		d = Data()
-		(received_odl,received_odr) = d.build_observed_data_set(ods)
-		self.assertEqual(must_be_odl,received_odl)
+        # pass
 
-	def test_build_observed_data_set_iright(self):
-		ods = [	[1,2,3],
-        		[2,3,4],
-        		[3,4,5],
-        		[4,5,6]]
-		must_be_odr = [4,5,6]
-		d = Data()
-		(received_odl,received_odr) = d.build_observed_data_set(ods)
-		self.assertEqual(must_be_odr,received_odr)
+    def test_read_raw_data(self):
 
-	
+        """
+        tests Data.read_raw_data with correct input_file
+        """
+
+        result_must_be = self.paragon
+        my_data = Data()
+
+        self.assertEqual(result_must_be, my_data.read_raw_data(self.testfile))
+
+        # TODO
+        # should tests Data.read_raw_data when input_file can not be found
+
+    def test_get_set_of_facts(self):
+
+        """
+        tests Data.get_set_of_facts(data_set)
+        TODO
+        it should not rely on d.read_raw_data(self.testfile)
+        """
+
+        dat = Data()
+        result_must_be = set(self.paragon)
+
+        self.assertEqual(result_must_be,
+                         dat.get_set_of_facts
+                         (dat.read_raw_data(self.testfile)))
+
+        # TODO
+        # should tests Data.get_set_of_facts(data_set)
+        # when data_set is empty or incorrect
+
+    def test_build_disc_data(self):
+
+        """
+        tests Data.build_disc_data(raw_data_set) when raw_data_set is ok
+        """
+
+        result_must_be = [[1, 2, 3],
+                          [2, 3, 4],
+                          [3, 4, 5],
+                          [4, 5, 6]]
+        raw_data_set = [1, 2, 3, 4, 5, 6]
+        data = Data()
+
+        self.assertItemsEqual(result_must_be,
+                              data.build_disc_data(raw_data_set, 3))
+
+        # TODO
+        # should tests Data.build_disc_data(raw_data_set)
+        # when raw_data_set is empty or incorrect
+
+    def test_build_observed_ds_left(self):
+
+        """
+        tests Data.build_observed_data_set(data_set)
+        comapre left side data sets
+        when data_set is ok
+        """
+
+        data_set = [[1, 2, 3],
+                    [2, 3, 4],
+                    [3, 4, 5],
+                    [4, 5, 6]]
+        must_be_left_side_data_set = [[1, 2, 3],
+                                      [2, 3, 4],
+                                      [3, 4, 5]]
+        data = Data()
+        left_data_set = data.build_observed_data_set(data_set)[0]
+
+        self.assertEqual(must_be_left_side_data_set, left_data_set)
+
+    def test_build_observed_ds_iright(self):
+
+        """
+        tests Data.build_observed_data_set(data_set)
+        comprae right side data sets
+        when data_set is ok
+        """
+
+        data_set = [[1, 2, 3],
+                    [2, 3, 4],
+                    [3, 4, 5],
+                    [4, 5, 6]]
+        must_be_right_side_data_set = [4, 5, 6]
+        data = Data()
+        right_data_set = data.build_observed_data_set(data_set)[1]
+
+        self.assertEqual(must_be_right_side_data_set, right_data_set)
+
 if __name__ == '__main__':
-	unittest.main()
-
-
+    unittest.main()

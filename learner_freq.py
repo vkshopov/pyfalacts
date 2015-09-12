@@ -1,183 +1,350 @@
+"""
 # simple freq learner -----------------------------
+"""
+
 class FreqLearner(object):
+    """
+    Frequency learner class
+    use a simple frequncy of matching lef_side->right_side
+    as a best attribute
+    """
+    #add coefficients of learniong and amnesia
+    #coa - coefficient of amnesia
+    coa = 0.04
+    #col - coefficient of learning
+    col = 0.2
 
-	#add coefficients of learniong and amnesia
-	#coa - coefficient of amnesia
-	#col - coefficient of learning
+    @staticmethod
+    def create_learner():
 
-	coa = 0.04
-	col = 0.2
+        """
+        create empty leaner
+        not quate usefull yet ...
+        """
 
-	def create_learner(self):
-		lrn = {}
+        lrn = {}
 
-		return lrn
+        return lrn
 
-	def train_one_sample(self, lrn, ls,rs,nof):
-		#print ls,rs
-		ls_key = self.encode_key(ls)
-		if (not(ls_key in lrn)):
-			lrn[ls_key] = {}
-		
-		#print ls_key
-		#print rs
-		if (not rs in lrn[ls_key]):
-			lrn[ls_key][rs] = 0.0
+    def train_one_sample(self, lrn, left_side, right_side):
 
-		lrn[ls_key][rs] += self.col
-		if lrn[ls_key][rs] > 1.0:
-			lrn[ls_key][rs] =1.0
+        """
+        train a learner
+        well it train the learner
+        with only one sample
+        it could be useful for adaptive(ONLINE) training
+        """
 
-	def encode_key(self,ls):
-		str_key =""
-		for i in ls:
-			str_key +=str(int(i))+"_"
-		
-		return str_key
+        ls_key = self.encode_key(left_side)
+        if not ls_key in lrn:
+            lrn[ls_key] = {}
+        if not right_side in lrn[ls_key]:
+            lrn[ls_key][right_side] = 0.0
 
-	def decode_key(self,str):
-		#lst = []
-		#lst = map(int,str.split("_"))
-		str = str[0:-1]# strip last delimiter becouse after split we get "error: '' is not an integer" 
-		lst = [int(n) for n in str.split('_')]
-		
-		return lst
+        lrn[ls_key][right_side] += self.col
+        if lrn[ls_key][right_side] > 1.0:
+            lrn[ls_key][right_side] = 1.0
 
-	def train_all_samples(self,odl,odr,nof):
+    @staticmethod
+    def encode_key(left_side):
 
-		lrn = self.create_learner()
-		#print odr
-		for i in range(len(odl)):
-			self.train_one_sample( lrn, odl[i],odr[i],nof)
-			self.decrease_other_samples( lrn, odl[i], nof)
-		return lrn
+        """
+        encodes left side from [1,2,3] to a string '1_2_3_'
+        because lists can not be keys in python dictionary
+        """
 
-	def decrease_other_samples(self,lrn,ls_positive, nof):
-		ls_pos_key = self.encode_key(ls_positive)
-		for ls_key in lrn:
-			if( ls_key != ls_pos_key):
-				self.decrease_one_sample(lrn,ls_key,nof)
-	
-	def decrease_one_sample(self,lrn,ls_key,nof):
-		for rs in lrn[ls_key]:
-			lrn[ls_key][rs] -= self.coa
-			if lrn[ls_key][rs] < 0.0:
-				lrn[ls_key][rs] = 0.0
+        str_key = ""
+        for i in left_side:
+            str_key += str(int(i))+"_"
+        return str_key
+
+    @staticmethod
+    def decode_key(key_str):
 
 
+        """
+        decode a dict key from string '1_2_3_' to list [1,2,3]
+        why is this function exists?
+        nobody seems to use it ?
 
-	#simple freq classifier------------------------------------------------------------
+        """
 
-	def classify_one_sample(self,ls,lrn):
-		tmp_rs = {}
-		tmp_rs = self.get_all_rs(ls,lrn)
-		frs = max(tmp_rs, key=tmp_rs.get)
-		return frs
+        #lst = []
+        #lst = map(int,str.split("_"))
+        key_str = key_str[0:-1] #strip last delimiter
+                        #becouse after split we get
+                        #"error: '' is not an integer"
+        lst = [int(n) for n in key_str.split('_')]
+        return lst
 
-	def get_all_rs(self,ls,lrn):
-		#returns sub dictionary with all right sides(facts) and their frequency e.g. {1:12, 2:4, 3:8} 
-		tmp_rs = {}
-		ls_key = self.encode_key(ls)
-		
-		tmp_rs = lrn[ls_key]
-		#print tmp_rs
-		return tmp_rs
+    def train_all_samples(self, left_data_set, right_data_set):
+
+        """
+        Use train_one sample to batch the learning process
+        """
+
+        lrn = self.create_learner()
+        #print right_data_set
+        for i in range(len(left_data_set)):
+            self.train_one_sample(lrn, left_data_set[i], right_data_set[i])
+            self.decrease_other_samples(lrn, left_data_set[i])
+        return lrn
+
+    def decrease_other_samples(self, lrn, ls_positive):
+
+        """
+        Process "amnesia" to all other samples exept the ls_positve
+        """
+
+        ls_pos_key = self.encode_key(ls_positive)
+        for ls_key in lrn:
+            if ls_key != ls_pos_key:
+                self.decrease_one_sample(lrn, ls_key)
+
+    def decrease_one_sample(self, lrn, ls_key):
+
+        """
+        Process "amnesia" to all to the sample coded with ls_key in leaner
+        """
+
+        for right_side in lrn[ls_key]:
+            lrn[ls_key][right_side] -= self.coa
+            if lrn[ls_key][right_side] < 0.0:
+                lrn[ls_key][right_side] = 0.0
+
+
+    #simple freq classifier-------------------------------------------
+
+    def classify_one_sample(self, left_side, lrn):
+
+        """
+        classifies one sampple
+        gets its left_side left side
+        and returns the forecasted right side
+        """
+
+        tmp_rs = {}
+        tmp_rs = self.get_all_rs(left_side, lrn)
+        frs = max(tmp_rs, key=tmp_rs.get)
+        return frs
+
+    def get_all_rs(self, left_side, lrn):
+
+        """
+        #returns sub dictionary with all right sides(facts)
+        #and their frequency e.g. {1:12, 2:4, 3:8}
+        """
+
+        tmp_rs = {}
+        ls_key = self.encode_key(left_side)
+        tmp_rs = lrn[ls_key]
+        #print tmp_rs
+        return tmp_rs
 
 
 import unittest
 
-class TestFreqLearner(unittest.TestCase):
+class TetFreqLearner(unittest.TestCase): #pylint: disable=R0904
 
-	def setUp(self):
-		self.fl1 = FreqLearner()
-	        #pass
+    """
+    Test class for FreqLearner
+    """
 
-	def test_train_one_sample(self):
-		lrn = {'5_1_2_': {3: 0}, '1_2_3_': {4: 0}, '3_4_5_': {1: 0}}
-		ls = [1,2,3]
-		rs = 4
-		nof = 4
-		fl = FreqLearner()
-		fl.train_one_sample(lrn,ls,rs,nof)
-		must_be_lrn = {'5_1_2_': {3: 0}, '1_2_3_': {4: 0}, '3_4_5_': {1: 0}}
-		must_be_lrn['1_2_3_'][4] += fl.col
-		self.assertEqual(must_be_lrn,lrn)
+    def setUp(self):
 
-	def test_encode_key(self):
-		ls = [1,2,3]
-		fl = FreqLearner()
-		
-		self.assertEqual("1_2_3_",fl.encode_key(ls)) 
+        """
+        Sets some internal FreqLearner variables
+        """
 
-	def test_decode_key(self):
-		str = "1_2_3_"
-		fl = FreqLearner()
-		
-		self.assertEqual([1,2,3],fl.decode_key(str))
-		
-	def test_train_all_samples(self):
-		odl = [[1,2,3],
-				[1,2,3],
-				[2,3,4],
-				[3,4,1]]
-		odr = [4,4,1,2]
-		nof = 0
+        self.fl1 = FreqLearner()
 
-		fl = FreqLearner()
-		lrn_must_be = {'1_2_3_': {4: 0}, '3_4_1_': {2: 0},'2_3_4_': {1: 0}}
-		lrn_must_be['1_2_3_'][4] += fl.col
-		lrn_must_be['1_2_3_'][4] += fl.col
+    def test_train_one_sample(self):
 
-		lrn_must_be['2_3_4_'][1] += fl.col
-		lrn_must_be['1_2_3_'][4] -= fl.coa
+        """
+        tests FreqLearner.train_one_sample
+        TODO ?
+        """
 
-		lrn_must_be['3_4_1_'][2] += fl.col
-		lrn_must_be['1_2_3_'][4] -= fl.coa
-		lrn_must_be['2_3_4_'][1] -= fl.coa
+        lrn = {'5_1_2_': {3: 0},
+               '1_2_3_': {4: 0},
+               '3_4_5_': {1: 0}}
+        left_side = [1, 2, 3]
+        right_side = 4
+        #nof = 4
+        test_fl = FreqLearner()
+        test_fl.train_one_sample(lrn, left_side, right_side)
+        must_be_lrn = {'5_1_2_': {3: 0},
+                       '1_2_3_': {4: 0},
+                       '3_4_5_': {1: 0}}
+        must_be_lrn['1_2_3_'][4] += test_fl.col
 
-		self.assertEqual( lrn_must_be ,fl.train_all_samples(odl,odr,nof))
+        self.assertEqual(must_be_lrn, lrn)
 
-	def test_decrease_other_samples(self):
-		fl = FreqLearner()
-		nof = 4
-		fl.col = 0.1
-		fl.coa = 0.02
-		ls_pos = [3,4,1]
-		lrn = {'1_2_3_': {4: 1.0}, '3_4_1_': {2: 1.0},'2_3_4_': {1: 1.0}}
-		lrn_must_be = {'1_2_3_': {4: 0.98}, '3_4_1_': {2: 1.0},'2_3_4_': {1: 0.98}}
-		fl.decrease_other_samples(lrn,ls_pos,nof)
-		self.assertEqual( lrn_must_be, lrn)
+    def test_encode_key(self):
 
-	def test_decrease_one_sample(self):
-		fl = FreqLearner()
-		nof = 4
-		fl.col = 0.1
-		fl.coa = 0.02
-		ls_key = '1_2_3_'
-		lrn = {'1_2_3_': {4: 1.0}, '3_4_1_': {2: 1.0},'2_3_4_': {1: 1.0}}
-		lrn_must_be = {'1_2_3_': {4: 0.98}, '3_4_1_': {2: 1.0},'2_3_4_': {1: 1.0}}
-		fl.decrease_one_sample(lrn,ls_key,nof)
-		self.assertEqual( lrn_must_be, lrn)
+        """
+        Tests FreqLearner.encode_key(ls)
+        when ls ois ok
+        """
 
-		#self.assertTrue(False)
+        lef_side = [1, 2, 3]
+        test_fl = FreqLearner()
 
-	def test_classify_one_sample(self):
-		ls = [1,2,3]
-		lrn = {'1_2_3_': {4: 2, 1:1}, '3_4_1_': {2: 1},'2_3_4_': {1: 1}}
-				
-		fl = FreqLearner()
-		rs_must_be = 4
+        self.assertEqual("1_2_3_", test_fl.encode_key(lef_side))
 
-		self.assertEqual(rs_must_be ,fl.classify_one_sample(ls,lrn))
-	
-	def test_get_all_rs(self):
-		ls = [1,2,3]
-		lrn = {'1_2_3_': {4: 2, 1:1}, '3_4_1_': {2: 1},'2_3_4_': {1: 1}}
-				
-		fl = FreqLearner()
-		rs_must_be = {4: 2, 1:1}
+        #"""
+        #TODO Tests FreqLearner.encode_key(ls) when ls is BAD!
+        #"""
 
-		self.assertEqual(rs_must_be ,fl.get_all_rs(ls,lrn))
-	
+    def test_decode_key(self):
+
+        """
+        Tests FreqLearner.decode_key(key_str)
+        when key_str is ok
+        """
+
+        key_str = "1_2_3_"
+        test_fl = FreqLearner()
+
+        self.assertEqual([1, 2, 3], test_fl.decode_key(key_str))
+
+        #"""
+        #TODO Tests FreqLearner.decode_key(key_str)  when key_str is BAD!
+        #"""
+
+    def test_train_all_samples(self):
+
+        """
+        Tests FreqLearner.train_all_samples
+        where left_data_set and righrt_data_set are ok
+        """
+
+        left_data_set = [[1, 2, 3],
+                         [1, 2, 3],
+                         [2, 3, 4],
+                         [3, 4, 1]]
+        right_data_set = [4, 4, 1, 2]
+        #nof = 0
+
+        test_fl = FreqLearner()
+        lrn_must_be = {'1_2_3_': {4: 0}, '3_4_1_': {2: 0}, '2_3_4_': {1: 0}}
+        lrn_must_be['1_2_3_'][4] += test_fl.col
+        lrn_must_be['1_2_3_'][4] += test_fl.col
+
+        lrn_must_be['2_3_4_'][1] += test_fl.col
+        lrn_must_be['1_2_3_'][4] -= test_fl.coa
+
+        lrn_must_be['3_4_1_'][2] += test_fl.col
+        lrn_must_be['1_2_3_'][4] -= test_fl.coa
+        lrn_must_be['2_3_4_'][1] -= test_fl.coa
+
+        self.assertEqual(lrn_must_be,
+                         test_fl.train_all_samples(left_data_set,
+                                                   right_data_set))
+
+        #"""
+        #TODO Tests FreqLearner.train_all_samples
+        #where left_data_set and righrt_data_set are BAD!
+        #"""
+
+    def test_decrease_other_samples(self):
+
+        """
+        Tests decrease_other_samples(lrn, ls_positive)
+        where lrn, ls_positive are ok
+        """
+
+        test_fl = FreqLearner()
+        #nof = 4
+        test_fl.col = 0.1
+        test_fl.coa = 0.02
+        ls_pos = [3, 4, 1]
+        lrn = {'1_2_3_': {4: 1.0},
+               '3_4_1_': {2: 1.0},
+               '2_3_4_': {1: 1.0}}
+        lrn_must_be = {'1_2_3_': {4: 0.98},
+                       '3_4_1_': {2: 1.0},
+                       '2_3_4_': {1: 0.98}}
+        test_fl.decrease_other_samples(lrn, ls_pos)
+
+        self.assertEqual(lrn_must_be, lrn)
+
+        #"""
+        #TODO  Tests FreqLearner.decrease_other_samples(lrn, ls_positive)
+        #where lrn, ls_positive are BAD!
+        #"""
+
+
+    def test_decrease_one_sample(self):
+
+        """
+        Test FreqLearner.decrease_one_sample(lrn,ls_key)
+        when lrn,ls_key are ok
+        """
+
+        test_fl = FreqLearner()
+        #nof = 4
+        test_fl.col = 0.1
+        test_fl.coa = 0.02
+        ls_key = '1_2_3_'
+        lrn = {'1_2_3_': {4: 1.0},
+               '3_4_1_': {2: 1.0},
+               '2_3_4_': {1: 1.0}}
+        lrn_must_be = {'1_2_3_': {4: 0.98},
+                       '3_4_1_': {2: 1.0},
+                       '2_3_4_': {1: 1.0}}
+        test_fl.decrease_one_sample(lrn, ls_key)
+
+        self.assertEqual(lrn_must_be, lrn)
+
+        #"""
+        #TODO FreqLearner.Learner.decrease_one_sample(lrn,ls_key)
+        #when lrn,ls_key are BAD!
+        #"""
+
+    def test_classify_one_sample(self):
+
+        """
+        Test FreqLearner.classify_one_sample(left_side, lrn)
+        when left_side, lrn are ok
+        """
+
+        left_side = [1, 2, 3]
+        lrn = {'1_2_3_': {4: 2, 1:1},
+               '3_4_1_': {2: 1},
+               '2_3_4_': {1: 1}}
+        test_fl = FreqLearner()
+        rs_must_be = 4
+
+        #"""
+        #Test FreqLearner.classify_one_sample(left_side, lrn)
+        #when left_side, lrn are BAD!
+        #"""
+
+        self.assertEqual(rs_must_be,
+                         test_fl.classify_one_sample(left_side, lrn))
+
+    def test_get_all_rs(self):
+
+        """
+        Tests FreqLearner.get_all_rs(ls,lrn)
+        when ls lrn are ok
+        """
+
+        lef_side = [1, 2, 3]
+        lrn = {'1_2_3_': {4: 2, 1:1},
+               '3_4_1_': {2: 1},
+               '2_3_4_': {1: 1}}
+        test_fl = FreqLearner()
+        rs_must_be = {4: 2, 1:1}
+
+        self.assertEqual(rs_must_be, test_fl.get_all_rs(lef_side, lrn))
+
+        #"""
+        #TODO Tests FreqLearner.get_all_rs(ls,lrn)
+        #when ls lrn are BAD!
+        #"""
+
+
 if __name__ == '__main__':
-	unittest.main()
+    unittest.main()
